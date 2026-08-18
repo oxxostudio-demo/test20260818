@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中壢污水大作戰</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tone.js for Web Audio effects -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap');
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      background-color: #0f172a;
+      overflow: hidden;
+    }
+
+    /* 確保 16:9 比例畫面的置中容器 */
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    /* 切圖圖層基底 */
+    .layer {
+      position: absolute;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* 1. 背景圖層 */
+    .layer-bg {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    /* 2. 中間上方 Logo 圖層 */
+    .layer-logo {
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 52%;
+      max-width: 660px;
+      z-index: 30;
+      animation: floatLogo 4s ease-in-out infinite;
+    }
+
+    /* 3. 左下角白鳥圖層 */
+    .layer-bird {
+      bottom: 0;
+      left: 0;
+      width: 42%;
+      max-width: 500px;
+      z-index: 40;
+      animation: wingFlutter 3s ease-in-out infinite;
+    }
+
+    /* 4. 中間下方按鈕圖層 */
+    .layer-btn {
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24%;
+      min-width: 180px;
+      max-width: 300px;
+      z-index: 50;
+    }
+
+    /* 5. 右下角人物圖層 */
+    .layer-character {
+      bottom: 0;
+      right: 0;
+      width: 35%;
+      max-width: 420px;
+      z-index: 40;
+      animation: characterBreathe 4s ease-in-out infinite;
+    }
+
+    /* 響應式圖片自動縮放設定 */
+    .layer img {
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* 微浮動動畫 */
+    @keyframes floatLogo {
+      0%, 100% { transform: translate(-50%, 0px) scale(1); }
+      50% { transform: translate(-50%, -10px) scale(1.01); }
+    }
+
+    @keyframes wingFlutter {
+      0%, 100% { transform: rotate(0deg) translateY(0px); }
+      50% { transform: rotate(2deg) translateY(-8px); }
+    }
+
+    @keyframes characterBreathe {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(1.015) translateY(-5px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 flex items-center justify-center p-2 sm:p-6">
+
+  <!-- 主要遊戲畫面容器 (16:9 比例純粹切版畫面) -->
+  <div id="gameContainer" class="game-container rounded-2xl border border-slate-800 shadow-2xl">
+
+    <!-- ================= 1. 背景圖層 (Background Image) ================= -->
+    <div class="layer layer-bg">
+      <img id="img-bg" 
+           src="img/bg.jpeg" 
+           alt="背景圖片" 
+           class="w-full h-full object-cover">
+    </div>
+
+    <!-- ================= 2. 中間上方 Logo 圖層 (Logo Image) ================= -->
+    <div class="layer layer-logo text-center">
+      <div id="img-logo-wrapper" class="w-full flex justify-center">
+        <img id="img-logo" 
+             src="img/title.png" 
+             alt="遊戲 Logo 切圖" 
+             class="w-full h-auto object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.3)]">
+      </div>
+    </div>
+
+    <!-- ================= 3. 左下白鳥圖層 (Bird Image) ================= -->
+    <div class="layer layer-bird">
+      <div id="img-bird-wrapper" class="w-full flex justify-start">
+        <img id="img-bird" 
+             src="img/bird.png" 
+             alt="左下白鳥切圖" 
+             class="w-full h-auto object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)]">
+      </div>
+    </div>
+
+    <!-- ================= 4. 中間下方按鈕圖層 (Button Image) ================= -->
+    <div class="layer layer-btn">
+      <div id="img-btn-wrapper" class="w-full flex justify-center">
+        <button id="startGameBtn" onclick="onStartGameClick()" class="w-full cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200 focus:outline-none">
+          <img id="img-btn" 
+               src="img/btn-start.png" 
+               alt="開始遊戲按鈕切圖" 
+               class="w-full h-auto object-contain drop-shadow-[0_10px_20px_rgba(234,88,12,0.5)]">
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= 5. 右下角人物圖層 (Character Image) ================= -->
+    <div class="layer layer-character">
+      <div id="img-character-wrapper" class="w-full flex justify-end">
+        <img id="img-character" 
+             src="img/character.png" 
+             alt="右下人物阿澤切圖" 
+             class="w-full h-auto object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]">
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* 開始遊戲按鈕音效與反饋 */
+    function onStartGameClick() {
+      try {
+        const synth = new Tone.Synth().toDestination();
+        synth.triggerAttackRelease("C5", "8n");
+      } catch (e) {
+        console.log("Audio play allowed after user interaction");
+      }
+
+      const btn = document.getElementById('startGameBtn');
+      if (btn) {
+        btn.classList.add('animate-bounce');
+        setTimeout(() => {
+          btn.classList.remove('animate-bounce');
+        }, 1000);
+      }
+    }
+  </script>
+</body>
+</html>
